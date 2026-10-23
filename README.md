@@ -27,7 +27,9 @@ curl http://localhost:8080/actuator/health/liveness
 curl http://localhost:8080/actuator/health/readiness
 ```
 
-Cả ba trả HTTP 200 và `{"status":"UP"}` khi app/DB sẵn sàng.
+Cả ba trả HTTP 200 với `"status":"UP"` khi app/DB sẵn sàng.
+Health tổng theo mặc định Actuator trả
+`{"status":"UP","groups":["liveness","readiness"]}`; hai URL probe trả `{"status":"UP"}`.
 Health tổng và readiness kiểm tra kết nối DB; liveness chỉ kiểm tra trạng thái app.
 Chỉ expose endpoint Actuator `health`; không công khai chi tiết DB, env, heapdump hay configprops.
 

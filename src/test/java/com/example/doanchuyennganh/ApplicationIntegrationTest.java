@@ -49,7 +49,9 @@ class ApplicationIntegrationTest {
     void healthAndProbesAreUpWithoutExposingDetails() throws Exception {
         for (String path : new String[]{"/actuator/health", "/actuator/health/liveness", "/actuator/health/readiness"}) {
             mvc.perform(get(path)).andExpect(status().isOk())
-                    .andExpect(content().json("{\"status\":\"UP\"}", true));
+                    .andExpect(jsonPath("$.status").value("UP"))
+                    .andExpect(jsonPath("$.components").doesNotExist())
+                    .andExpect(jsonPath("$.details").doesNotExist());
         }
     }
 
