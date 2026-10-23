@@ -1,0 +1,3 @@
+-- Initial schema baseline. No business tables are required by this skeleton.
+-- Add subsequent changes as V2__description.sql, V3__description.sql, etc.
+-- Never edit a migration that has already been applied.

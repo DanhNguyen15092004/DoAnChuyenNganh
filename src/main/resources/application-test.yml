@@ -1,0 +1,5 @@
+# Testcontainers supplies JDBC connection details via DynamicPropertySource.
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 3

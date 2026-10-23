@@ -1,0 +1,5 @@
+# Required variables have no credential defaults; .env is only imported by local.
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
