@@ -1,0 +1,11 @@
+# Allow only backend build inputs; never send .env, .git or frontend to this build.
+**
+!pom.xml
+!mvnw
+!.mvn/
+!.mvn/**
+!src/
+!src/main/
+!src/main/**
+**/.env
+**/.env.*

@@ -5,3 +5,13 @@ spring:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${MYSQL_DATABASE:doanchuyennganh}?connectionTimeZone=UTC&allowPublicKeyRetrieval=true&useSSL=false
     username: ${MYSQL_USER:app}
     password: ${MYSQL_PASSWORD:local_password}
+
+app:
+  seed:
+    enabled: ${APP_SEED_ENABLED:false}
+
+server:
+  servlet:
+    session:
+      cookie:
+        secure: false

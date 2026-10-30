@@ -1,9 +1,39 @@
 # DoAnChuyenNganh
 
-Skeleton Java 21, Spring Boot 3.5.16, Maven Wrapper 3.9.11, MySQL 8.0, JPA và Flyway.
-Không có Spring Security, JWT, entity hay API nghiệp vụ.
+Test API trực tiếp trong VS Code: [bộ request REST Client](api-tests.http) và [hướng dẫn chạy](docs/rest-client.md).
 
-## Chạy local
+Skeleton Java 21, Spring Boot 3.5.16, Maven Wrapper 3.9.11, MySQL 8.0, JPA và Flyway.
+Đã bổ sung xác thực email/password, Spring Security + BCrypt, session cookie và phân quyền theo role.
+Contract và hướng dẫn seed local: [docs/auth-contract.md](docs/auth-contract.md).
+Đăng ký tài khoản sinh viên qua UI/API: [docs/registration.md](docs/registration.md).
+Ví dụ CSRF → login → me → API theo role → logout → thử cookie cũ: [docs/auth-session-flow.md](docs/auth-session-flow.md).
+Module kỳ thi (draft/câu hỏi/publish/ghi danh/consent): [docs/exam-module.md](docs/exam-module.md).
+Lượt thi bắt đầu/tiếp tục, deadline server và xem đề không chứa đáp án:
+[docs/attempt-module.md](docs/attempt-module.md). Chưa có lưu đáp án/nộp/chấm điểm.
+
+## Chạy toàn bộ bằng Docker
+
+Docker Compose hiện chạy **MySQL + backend Java 21 + frontend React/Vite qua Nginx**.
+Chạy tại thư mục có `docker-compose.yml`:
+
+```powershell
+# Chỉ copy nếu chưa có .env; không ghi đè cấu hình hiện có.
+Copy-Item .env.example .env
+docker compose up -d --build --wait
+docker compose ps
+```
+
+Mở **http://localhost:8088**. Backend health: **http://localhost:8080/actuator/health**.
+Không cần cài Java/Node/Maven trên host để chạy stack Docker.
+Nếu đang chạy backend bằng Maven ở cổng 8080, dừng tiến trình đó hoặc đặt
+`BACKEND_PORT=8081` trong `.env`. `FRONTEND_PORT` đổi cổng frontend; `DB_PORT` đổi cổng
+MySQL trên host. Container backend luôn kết nối `mysql:3306`, Nginx luôn proxy tới `backend:8080`.
+
+Đây là cấu hình HTTP **local**, dùng profile local và giữ nguyên chính sách cookie/CSRF.
+Không có TLS và chưa được xác minh production. Hướng dẫn seed, cập nhật image, dữ liệu
+và yêu cầu production: [docs/docker.md](docs/docker.md).
+
+## Chạy local bằng Maven/Vite
 
 Cần JDK 21 (`JAVA_HOME` trỏ tới JDK), Docker Engine/Docker Desktop đang chạy Linux containers,
 Git; cổng 3306 và 8080 còn trống. Không cần cài Maven riêng.
@@ -12,12 +42,12 @@ Git; cổng 3306 và 8080 còn trống. Không cần cài Maven riêng.
 git clone https://github.com/DanhNguyen15092004/DoAnChuyenNganh.git
 cd DoAnChuyenNganh
 cp .env.example .env
-docker compose up -d
+docker compose up -d mysql
 # Chờ MySQL healthy: docker compose ps
 ./mvnw spring-boot:run
 ```
 
-Có thể dùng `docker compose up -d --wait` để chờ healthcheck ngay trong lệnh.
+Có thể dùng `docker compose up -d --wait mysql` để chờ healthcheck ngay trong lệnh.
 Trên PowerShell dùng `Copy-Item .env.example .env` và `.\mvnw.cmd spring-boot:run`.
 Trên Git Bash/Linux/macOS dùng `./mvnw` như trên.
 
@@ -62,12 +92,15 @@ docker compose down  # Dừng MySQL, giữ dữ liệu trong named volume
 src/main/java/com/example/doanchuyennganh/
   DoAnChuyenNganhApplication.java
   config/                 # Cấu hình ứng dụng khi phát sinh nhu cầu
+  account/                # User, Role, repository, principal/service và seeder local
   common/exception/       # RestControllerAdvice, exception dùng chung
   common/demo/            # Endpoint kiểm chứng lỗi, chỉ local/test
 src/main/resources/
   application.yml
   application-{local,test,prod}.yml
   db/migration/V1__init.sql
+  db/migration/V2__create_app_users.sql
+  db/migration/V3__enforce_exact_user_roles.sql
 src/test/java/com/example/doanchuyennganh/
   ApplicationIntegrationTest.java
 ```
@@ -88,7 +121,9 @@ curl -i http://localhost:8080/api/examples/errors/not-found
 curl -i http://localhost:8080/api/examples/errors/internal
 ```
 
-Lần lượt trả 400, 404, 500 với `Content-Type: application/problem+json`, theo ProblemDetail
+POST validation hiện cần CSRF token hợp lệ; ví dụ curl trên chưa gửi token sẽ nhận 403 từ filter.
+Lấy token và giữ cookie qua GET `/api/v1/auth/csrf`; gửi token trong header `X-CSRF-TOKEN` cho POST.
+Khi có CSRF hợp lệ, ba ví dụ lần lượt trả 400, 404, 500 với `Content-Type: application/problem+json`, theo ProblemDetail
 (RFC 7807, được RFC 9457 thay thế). Ví dụ lỗi 500:
 
 ```json
@@ -126,5 +161,5 @@ GitHub Actions chạy trên `push` và `pull_request`, Java 21, Maven cache và
 - Dùng bản Spring Boot 3.x ổn định mới nhất có trên Maven Central: 3.5.16,
   đối chiếu ngày 23/10/2026 với [thông báo chính thức](https://spring.io/blog/2026/06/25/spring-boot-3-5-16-available-now/).
 - Compose chỉ chạy MySQL. Dockerfile/app service là tùy chọn và chưa thêm; app chạy bằng Maven Wrapper.
-- Bảng nghiệp vụ để trống theo phạm vi skeleton; các endpoint mẫu chỉ kiểm chứng lỗi kỹ thuật.
-- Không bổ sung thư viện ngoài danh sách yêu cầu; dependency version do Spring Boot quản lý.
+- V2 bổ sung bảng `app_users`, V3 siết CHECK role chính xác bằng so sánh binary; V1 giữ nguyên.
+- Bổ sung starter Security và `spring-security-test` theo phạm vi auth; dependency version do Spring Boot quản lý.

@@ -19,6 +19,7 @@ import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -77,6 +78,7 @@ class ApplicationIntegrationTest {
     @Test
     void invalidBodyReturns400ProblemDetail() throws Exception {
         mvc.perform(post("/api/examples/errors/validation")
+                        .with(csrf())
                         .contentType("application/json").content("{\"name\":\"\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
@@ -111,6 +113,7 @@ class ApplicationIntegrationTest {
     @Test
     void malformedJsonReturns400InsteadOf500() throws Exception {
         mvc.perform(post("/api/examples/errors/validation")
+                        .with(csrf())
                         .contentType("application/json").content("{"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith("application/problem+json"));

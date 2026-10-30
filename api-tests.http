@@ -1,0 +1,289 @@
+# REST Client (humao.rest-client) — chạy Send Request lần lượt từ trên xuống.
+# Hướng dẫn: docs/rest-client.md. File này phải cùng thư mục với .env.
+# Cookie được REST Client lưu tự động; chỉ một tài khoản hoạt động tại một thời điểm.
+@baseUrl = http://localhost:8080
+@teacherEmail = teacher@example.test
+@studentEmail = student@example.test
+@examId = {{createExam.response.body.$.id}}
+@studentId = {{studentMe.response.body.$.id}}
+@teacherCsrf = {{teacherSessionCsrf.response.body.$.token}}
+@studentCsrf = {{studentSessionCsrf.response.body.$.token}}
+
+### 01. Health — 200, status UP
+GET {{baseUrl}}/actuator/health
+
+### 02. Lấy CSRF trước login sinh viên — 200
+# @name studentLoginCsrf
+GET {{baseUrl}}/api/v1/auth/csrf
+
+### 03. Login sinh viên để lấy ID — 200, role STUDENT
+# @name studentLogin
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+X-CSRF-TOKEN: {{studentLoginCsrf.response.body.$.token}}
+
+{
+  "email": "{{studentEmail}}",
+  "password": "{{$dotenv SEED_STUDENT_PASSWORD}}"
+}
+
+### 04. Lưu studentId từ /me — 200, role STUDENT
+# @name studentMe
+GET {{baseUrl}}/api/v1/auth/me
+
+### 05. CSRF mới sau login sinh viên — 200
+# @name studentInitialSessionCsrf
+GET {{baseUrl}}/api/v1/auth/csrf
+
+### 06. Logout sinh viên trước khi đổi tài khoản — 204
+POST {{baseUrl}}/api/v1/auth/logout
+X-CSRF-TOKEN: {{studentInitialSessionCsrf.response.body.$.token}}
+
+### 07. /me sau logout — 401
+GET {{baseUrl}}/api/v1/auth/me
+
+### 08. Lấy CSRF trước login giáo viên — 200
+# @name teacherLoginCsrf
+GET {{baseUrl}}/api/v1/auth/csrf
+
+### 09. Login giáo viên — 200, role TEACHER
+# @name teacherLogin
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+X-CSRF-TOKEN: {{teacherLoginCsrf.response.body.$.token}}
+
+{
+  "email": "{{teacherEmail}}",
+  "password": "{{$dotenv SEED_TEACHER_PASSWORD}}"
+}
+
+### 10. CSRF mới sau login giáo viên — 200
+# @name teacherSessionCsrf
+GET {{baseUrl}}/api/v1/auth/csrf
+
+### 11. Tài khoản hiện tại — 200, role TEACHER
+GET {{baseUrl}}/api/v1/auth/me
+
+### 12. Tạo draft — 201, status DRAFT, questions []
+# @name createExam
+POST {{baseUrl}}/api/v1/teacher/exams
+Content-Type: application/json
+X-CSRF-TOKEN: {{teacherCsrf}}
+
+{
+  "title": "Kỳ thi REST Client",
+  "description": "Bộ test API trực tiếp trên VS Code",
+  "durationMinutes": 30,
+  "opensAt": "{{$datetime iso8601 1 h}}",
+  "closesAt": "{{$datetime iso8601 3 h}}"
+}
+
+### 13. Danh sách kỳ thi — 200, content chứa examId vừa tạo
+GET {{baseUrl}}/api/v1/teacher/exams?page=0&size=20
+
+### 14. Chi tiết draft — 200
+GET {{baseUrl}}/api/v1/teacher/exams/{{examId}}
+
+### 15. Publish khi chưa có câu hỏi — 409
+POST {{baseUrl}}/api/v1/teacher/exams/{{examId}}/publish
+X-CSRF-TOKEN: {{teacherCsrf}}
+
+### 16. Cập nhật metadata draft — 200
+PUT {{baseUrl}}/api/v1/teacher/exams/{{examId}}
+Content-Type: application/json
+X-CSRF-TOKEN: {{teacherCsrf}}
+
+{
+  "title": "Kỳ thi REST Client - đã cập nhật",
+  "description": "Hai câu hỏi trắc nghiệm, mỗi câu đúng một đáp án",
+  "durationMinutes": 30,
+  "opensAt": "{{createExam.response.body.$.opensAt}}",
+  "closesAt": "{{createExam.response.body.$.closesAt}}"
+}
+
+### 17. Thay toàn bộ câu hỏi — 200, questions có 2 phần tử
+# @name replaceQuestions
+PUT {{baseUrl}}/api/v1/teacher/exams/{{examId}}/questions
+Content-Type: application/json
+X-CSRF-TOKEN: {{teacherCsrf}}
+
+{
+  "questions": [
+    {
+      "content": "2 + 2 = ?",
+      "position": 1,
+      "options": [
+        { "content": "4", "position": 1, "correct": true },
+        { "content": "5", "position": 2, "correct": false }
+      ]
+    },
+    {
+      "content": "HTTP method nào dùng để đọc dữ liệu?",
+      "position": 2,
+      "options": [
+        { "content": "GET", "position": 1, "correct": true },
+        { "content": "POST", "position": 2, "correct": false },
+        { "content": "PUT", "position": 3, "correct": false }
+      ]
+    }
+  ]
+}
+
+### 18. Câu hỏi có hai đáp án đúng — 400; phải giữ nguyên đề cũ
+PUT {{baseUrl}}/api/v1/teacher/exams/{{examId}}/questions
+Content-Type: application/json
+X-CSRF-TOKEN: {{teacherCsrf}}
+
+{
+  "questions": [{
+    "content": "Câu hỏi không hợp lệ",
+    "position": 1,
+    "options": [
+      { "content": "A", "position": 1, "correct": true },
+      { "content": "B", "position": 2, "correct": true }
+    ]
+  }]
+}
+
+### 19. Kiểm tra đề không đổi sau lỗi — 200, vẫn đủ 2 câu ở bước 17
+GET {{baseUrl}}/api/v1/teacher/exams/{{examId}}
+
+### 20. Publish — 200, status PUBLISHED, publishedAt khác null
+# @name publishExam
+POST {{baseUrl}}/api/v1/teacher/exams/{{examId}}/publish
+X-CSRF-TOKEN: {{teacherCsrf}}
+
+### 21. Publish lặp — 200, giữ nguyên publishedAt so với bước 20
+POST {{baseUrl}}/api/v1/teacher/exams/{{examId}}/publish
+X-CSRF-TOKEN: {{teacherCsrf}}
+
+### 22. Sửa metadata sau publish — 409
+PUT {{baseUrl}}/api/v1/teacher/exams/{{examId}}
+Content-Type: application/json
+X-CSRF-TOKEN: {{teacherCsrf}}
+
+{
+  "title": "Không được sửa đề đã publish",
+  "description": "Kiểm tra bất biến",
+  "durationMinutes": 30,
+  "opensAt": "{{createExam.response.body.$.opensAt}}",
+  "closesAt": "{{createExam.response.body.$.closesAt}}"
+}
+
+### 23. Thay câu hỏi sau publish — 409
+PUT {{baseUrl}}/api/v1/teacher/exams/{{examId}}/questions
+Content-Type: application/json
+X-CSRF-TOKEN: {{teacherCsrf}}
+
+{ "questions": [] }
+
+### 24. Ghi danh sinh viên — 201
+# @name enrollStudent
+POST {{baseUrl}}/api/v1/teacher/exams/{{examId}}/enrollments
+Content-Type: application/json
+X-CSRF-TOKEN: {{teacherCsrf}}
+
+{ "studentId": {{studentId}} }
+
+### 25. Ghi danh lặp — 200, cùng id/enrolledAt với bước 24
+POST {{baseUrl}}/api/v1/teacher/exams/{{examId}}/enrollments
+Content-Type: application/json
+X-CSRF-TOKEN: {{teacherCsrf}}
+
+{ "studentId": {{studentId}} }
+
+### 26. Danh sách ghi danh — 200, consentAccepted false
+GET {{baseUrl}}/api/v1/teacher/exams/{{examId}}/enrollments?page=0&size=20
+
+### 27. POST thiếu CSRF dù đã login — 403
+POST {{baseUrl}}/api/v1/teacher/exams/{{examId}}/publish
+
+### 28. Phân trang không hợp lệ — 400
+GET {{baseUrl}}/api/v1/teacher/exams?page=0&size=101
+
+### 29. Giáo viên truy cập API sinh viên — 403
+GET {{baseUrl}}/api/v1/student/exams
+
+### 30. Logout giáo viên — 204
+POST {{baseUrl}}/api/v1/auth/logout
+X-CSRF-TOKEN: {{teacherCsrf}}
+
+### 31. CSRF trước khi đăng nhập lại sinh viên — 200
+# @name studentReloginCsrf
+GET {{baseUrl}}/api/v1/auth/csrf
+
+### 32. Đăng nhập lại sinh viên — 200, role STUDENT
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+X-CSRF-TOKEN: {{studentReloginCsrf.response.body.$.token}}
+
+{
+  "email": "{{studentEmail}}",
+  "password": "{{$dotenv SEED_STUDENT_PASSWORD}}"
+}
+
+### 33. CSRF mới sau login — 200
+# @name studentSessionCsrf
+GET {{baseUrl}}/api/v1/auth/csrf
+
+### 34. Danh sách kỳ thi đã ghi danh — 200, chứa examId
+GET {{baseUrl}}/api/v1/student/exams?page=0&size=20
+
+### 35. Chi tiết kỳ thi — 200, questionCount 2, consentAccepted false
+# Không có questions/options/correct. Consent được phép trước opensAt.
+# @name studentExam
+GET {{baseUrl}}/api/v1/student/exams/{{examId}}
+
+### 36. Consent sai phiên bản — 409
+POST {{baseUrl}}/api/v1/student/exams/{{examId}}/consent
+Content-Type: application/json
+X-CSRF-TOKEN: {{studentCsrf}}
+
+{ "accepted": true, "consentVersion": "invalid-test-version" }
+
+### 37. Consent accepted=false — 400
+POST {{baseUrl}}/api/v1/student/exams/{{examId}}/consent
+Content-Type: application/json
+X-CSRF-TOKEN: {{studentCsrf}}
+
+{ "accepted": false, "consentVersion": "{{studentExam.response.body.$.consentVersion}}" }
+
+### 38. Chấp nhận consent — 201
+# @name acceptConsent
+POST {{baseUrl}}/api/v1/student/exams/{{examId}}/consent
+Content-Type: application/json
+X-CSRF-TOKEN: {{studentCsrf}}
+
+{ "accepted": true, "consentVersion": "{{studentExam.response.body.$.consentVersion}}" }
+
+### 39. Consent lặp — 200, cùng id/acceptedAt với bước 38
+POST {{baseUrl}}/api/v1/student/exams/{{examId}}/consent
+Content-Type: application/json
+X-CSRF-TOKEN: {{studentCsrf}}
+
+{ "accepted": true, "consentVersion": "{{studentExam.response.body.$.consentVersion}}" }
+
+### 40. Kiểm tra sau consent — 200, consentAccepted true
+GET {{baseUrl}}/api/v1/student/exams/{{examId}}
+
+### 41. Sinh viên truy cập đề giáo viên — 403
+GET {{baseUrl}}/api/v1/teacher/exams/{{examId}}
+
+### 42. ID kỳ thi không tồn tại — 404
+GET {{baseUrl}}/api/v1/student/exams/9223372036854775807
+
+### 43. Consent thiếu CSRF — 403
+POST {{baseUrl}}/api/v1/student/exams/{{examId}}/consent
+Content-Type: application/json
+
+{ "accepted": true, "consentVersion": "{{studentExam.response.body.$.consentVersion}}" }
+
+### 44. Logout sinh viên — 204
+POST {{baseUrl}}/api/v1/auth/logout
+X-CSRF-TOKEN: {{studentCsrf}}
+
+### 45. /me sau logout — 401
+GET {{baseUrl}}/api/v1/auth/me
+
+### 46. API bảo vệ sau logout — 401
+GET {{baseUrl}}/api/v1/student/exams

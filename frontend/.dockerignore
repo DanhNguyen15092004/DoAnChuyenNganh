@@ -1,0 +1,13 @@
+# Frontend build inputs only. No environment files, credentials or node_modules.
+**
+!package.json
+!package-lock.json
+!index.html
+!vite.config.js
+!nginx.conf
+!src/
+!src/**
+!public/
+!public/**
+**/.env
+**/.env.*
