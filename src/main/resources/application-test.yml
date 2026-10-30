@@ -1,4 +1,8 @@
 # Testcontainers supplies JDBC connection details via DynamicPropertySource.
+app:
+  attempt:
+    timeout:
+      enabled: false # Scheduler integration test explicitly enables it with its own fixed Clock.
 spring:
   datasource:
     hikari:

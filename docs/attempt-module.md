@@ -1,5 +1,9 @@
 # Lượt thi: bắt đầu và tiếp tục
 
+> Tài liệu giai đoạn V5. Contract hiện tại bổ sung autosave, lifecycle hết giờ và bảng
+> điều hướng ở [attempt-answers.md](attempt-answers.md). Các giới hạn “chưa lưu đáp án”,
+> “GET chỉ đọc”, “không có mã lỗi riêng” dưới đây chỉ mô tả giai đoạn V5 ban đầu.
+
 Phạm vi ngày 30/10/2026: tạo một lượt cho mỗi enrollment, chốt deadline, đọc đề khi
 ACTIVE, tiếp tục sau reload. Chưa có lưu đáp án/nộp bài/chấm điểm, scheduler finalize,
 thi lại/gia hạn, camera/AI hoặc WebSocket. EXPIRED chỉ là hết thời gian truy cập đề.

@@ -1,7 +1,9 @@
 # Frontend kiểm thử kỳ thi
 
-React + Vite, JavaScript/JSX. Có bắt đầu/tiếp tục lượt và đọc đề theo deadline server;
-chưa có lưu đáp án/nộp bài/điểm. Demo: [attempt-module.md](../docs/attempt-module.md).
+React + Vite, JavaScript/JSX. Có bắt đầu/tiếp tục lượt, chọn/bỏ chọn và autosave,
+bảng điều hướng câu hỏi, khôi phục từ server, nộp bài và tự kết thúc/chấm điểm khi hết giờ.
+Sinh viên xem điểm, giáo viên/ADMIN xem danh sách và kết quả bài thi theo quyền backend.
+Demo hiện tại: [attempt-grading.md](../docs/attempt-grading.md).
 Trang đăng nhập có nút **Đăng ký sinh viên**. Đăng ký tạo STUDENT, không cho chọn role;
 thành công quay lại đăng nhập. Chi tiết: [registration.md](../docs/registration.md).
 Contract đã đối chiếu source: [frontend-contract.md](../docs/frontend-contract.md).

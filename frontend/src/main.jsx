@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { api, ApiError, refreshCsrf } from './api.js';
 import { dateText, metadataError, questionPayload, questionsError, timezone, toInstant, toLocalInput } from './forms.js';
 import { AttemptAction, AttemptPage } from './AttemptPages.jsx';
+import { StudentResultPage, TeacherAttemptList, TeacherResultPage } from './ResultPages.jsx';
 import './style.css';
 
 const teacherPath = '/teacher/exams';
@@ -55,7 +56,7 @@ function Login({ onLogin, navigate }) {
     } catch (e) { setError(e); } finally { setBusy(false); }
   }
   return <div className="login-layout"><section className="intro"><p className="eyebrow">KHÔNG GIAN KỲ THI</p><h1>Chuẩn bị đề.<br />Sẵn sàng tham gia.</h1>
-    <p>Giáo viên quản lý kỳ thi và ghi danh. Sinh viên xem lịch thi, xác nhận giám sát và mở đề.</p><p className="muted">Chức năng lưu đáp án đang được phát triển.</p></section>
+    <p>Giáo viên quản lý kỳ thi, ghi danh và xem kết quả. Sinh viên xác nhận giám sát, làm bài và nộp bài.</p><p className="muted">Đáp án được tự động lưu. Sau khi nộp hoặc hết giờ, bài được chấm và không thể chỉnh sửa.</p></section>
     <section className="card login"><h2>Đăng nhập</h2><p>Dùng tài khoản được cấp cho bạn.</p><form onSubmit={submit}>
       <fieldset disabled={busy}><label>Email<input type="email" autoComplete="username" maxLength={254} required value={email} onChange={e => setEmail(e.target.value)} /></label>
         <label>Mật khẩu<input type="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} /></label>
@@ -187,6 +188,7 @@ function Enrollments({ id, published }) {
 function TeacherDetail({ id, navigate, onDirty }) {
   const load = useLoad(`${teacherPath}/${id}`);
   return <><button className="back" onClick={() => navigate(teacherPath)}>← Danh sách kỳ thi</button><Notice error={load.error} reload={load.reload} />
+    <p><button onClick={() => navigate(`${teacherPath}/${id}/attempts`)}>Xem danh sách bài thi</button></p>
     {load.busy && <p role="status">Đang tải chi tiết…</p>}{load.data && <TeacherEditor key={`${load.data.id}:${load.data.updatedAt}`} initial={load.data} onDirty={onDirty} reload={load.reload} />}</>;
 }
 function TeacherEditor({ initial, onDirty, reload }) {
@@ -323,9 +325,12 @@ function App() {
     if ((path.startsWith(teacherPath) && !teacher) || ((path.startsWith(studentPath) || path.startsWith('/student/attempts')) && user.role !== 'STUDENT')) content = <section className="card"><h1>Không có quyền truy cập</h1><p>Vai trò của bạn không được phép mở khu vực này.</p><button onClick={() => navigate(home)}>Về kỳ thi của tôi</button></section>;
     else if (path === home) content = <ExamList key={home} student={!teacher} navigate={navigate} />;
     else if (path === `${teacherPath}/new` && teacher) content = <CreateExam navigate={navigate} onDirty={onDirty} />;
+    else if (/^\/teacher\/exams\/[1-9]\d*\/attempts$/.test(path) && teacher) content = <TeacherAttemptList key={path} examId={path.split('/')[3]} navigate={navigate} />;
+    else if (/^\/teacher\/exams\/[1-9]\d*\/attempts\/[1-9]\d*\/result$/.test(path) && teacher) content = <TeacherResultPage key={path} examId={path.split('/')[3]} id={path.split('/')[5]} navigate={navigate} />;
     else if (/^\/teacher\/exams\/[1-9]\d*$/.test(path) && teacher) content = <TeacherDetail key={path} id={path.split('/').pop()} navigate={navigate} onDirty={onDirty} />;
     else if (/^\/student\/exams\/[1-9]\d*$/.test(path) && user.role === 'STUDENT') content = <StudentDetail key={path} id={path.split('/').pop()} navigate={navigate} />;
-    else if (/^\/student\/attempts\/[1-9]\d*$/.test(path) && user.role === 'STUDENT') content = <AttemptPage key={path} id={path.split('/').pop()} navigate={navigate} />;
+    else if (/^\/student\/attempts\/[1-9]\d*\/result$/.test(path) && user.role === 'STUDENT') content = <StudentResultPage key={path} id={path.split('/')[3]} navigate={navigate} />;
+    else if (/^\/student\/attempts\/[1-9]\d*$/.test(path) && user.role === 'STUDENT') content = <AttemptPage key={path} id={path.split('/').pop()} navigate={navigate} onDirty={onDirty} />;
     else content = <section className="card"><h1>Không tìm thấy trang</h1><button onClick={() => navigate(home)}>Về danh sách kỳ thi</button></section>;
   }
   return <><a className="skip-link" href="#main" onClick={e => { e.preventDefault(); document.getElementById('main').focus(); }}>Đến nội dung chính</a><header><div className="header-inner"><button className="brand" onClick={() => navigate(user ? home : '/login')}><span className="brand-mark">K</span>Kỳ thi<span className="brand-note">Kiểm thử luồng</span></button>

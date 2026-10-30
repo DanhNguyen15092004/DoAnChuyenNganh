@@ -9,7 +9,11 @@ Contract và hướng dẫn seed local: [docs/auth-contract.md](docs/auth-contra
 Ví dụ CSRF → login → me → API theo role → logout → thử cookie cũ: [docs/auth-session-flow.md](docs/auth-session-flow.md).
 Module kỳ thi (draft/câu hỏi/publish/ghi danh/consent): [docs/exam-module.md](docs/exam-module.md).
 Lượt thi bắt đầu/tiếp tục, deadline server và xem đề không chứa đáp án:
-[docs/attempt-module.md](docs/attempt-module.md). Chưa có lưu đáp án/nộp/chấm điểm.
+[docs/attempt-module.md](docs/attempt-module.md). Đã bổ sung autosave, bảng điều hướng câu hỏi
+và tự kết thúc khi hết giờ: [docs/attempt-answers.md](docs/attempt-answers.md).
+Đã bổ sung nộp chủ động, chấm điểm và xem kết quả sinh viên/giáo viên:
+[docs/attempt-grading.md](docs/attempt-grading.md). Kết quả kiểm chứng:
+[báo cáo grading](docs/attempt-grading-report.md).
 
 ## Chạy toàn bộ bằng Docker
 

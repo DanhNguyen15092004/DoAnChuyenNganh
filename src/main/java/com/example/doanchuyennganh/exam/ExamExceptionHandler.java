@@ -11,6 +11,13 @@ import org.springframework.web.bind.annotation.*;
 @RestControllerAdvice(basePackageClasses=ExamService.class)
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class ExamExceptionHandler {
+    @ExceptionHandler(AttemptConflictException.class)
+    ProblemDetail attemptConflict(AttemptConflictException e) {
+        var problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
+        problem.setProperty("code", e.code);
+        problem.setProperty("serverTime", e.serverTime);
+        return problem;
+    }
     @ExceptionHandler(InvalidExamRequestException.class)
     ProblemDetail invalid(InvalidExamRequestException e) { return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,e.getMessage()); }
     @ExceptionHandler(ExamConflictException.class)

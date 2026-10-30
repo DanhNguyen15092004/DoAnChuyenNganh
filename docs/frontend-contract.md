@@ -29,7 +29,10 @@ M = TEACHER (chỉ exam sở hữu) hoặc ADMIN (mọi exam). U = tài khoản 
 | GET | S/{id}/attempt | — | 200 AttemptResponse / 404 chưa có | STUDENT | Không | — |
 | GET | /api/v1/student/attempts/{attemptId} | — | 200 AttemptResponse chính chủ | STUDENT | Không | — |
 
-Contract attempt bổ sung 30/10/2026: [attempt-module.md](attempt-module.md).
+Contract attempt V5: [attempt-module.md](attempt-module.md). Phần mở rộng V6 hiện tại:
+[lưu đáp án, mã lỗi, timeout và điều hướng](attempt-answers.md).
+Phần mở rộng V7: [submit, kết quả và danh sách bài thi](attempt-grading.md), gồm bảng
+endpoint/DTO/page thực tế và quy tắc availability độc lập với trạng thái cuối.
 AttemptResponse có attemptId,examId,title,startedAt,deadlineAt,serverTime,availability,
 questions. ACTIVE: question id/content/position/options, option id/content/position;
 EXPIRED: questions=[]. Không có correct/isCorrect/correctOptionId/lời giải.
